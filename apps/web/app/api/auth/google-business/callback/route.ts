@@ -24,13 +24,24 @@ export async function GET(request: Request) {
   }
 
   try {
+    const tenant = await db.tenant.findUnique({
+      where: { id: state },
+      select: { googleClientId: true, googleClientSecret: true },
+    });
+
+    if (!tenant?.googleClientId || !tenant?.googleClientSecret) {
+      return NextResponse.redirect(
+        new URL("/dashboard/settings?error=missing_google_credentials", process.env.NEXTAUTH_URL!)
+      );
+    }
+
     const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         code,
-        client_id: process.env.GOOGLE_CLIENT_ID || "",
-        client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+        client_id: tenant.googleClientId,
+        client_secret: tenant.googleClientSecret,
         redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/google-business/callback`,
         grant_type: "authorization_code",
       }),
