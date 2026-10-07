@@ -1,0 +1,499 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MULTI-TENANCY
+// ============================================
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // API Configuration (per-tenant)
+  anthropicApiKey    String?  @db.Text
+  anthropicModel     String?  @default("claude-sonnet-5-5")
+  googleClientId     String?  @db.Text
+  googleClientSecret String?  @db.Text
+  telegramBotToken   String?  @db.Text
+  telegramChatId     String?
+  evolutionApiUrl    String?
+  evolutionApiKey    String?  @db.Text
+
+  // AI Response Configuration
+  aiDefaultTone      String?  @default("professional")
+  aiCustomPrompt     String?  @db.Text
+  aiBusinessContext  String?  @db.Text
+
+  users               User[]
+  googleAccounts      GoogleAccount[]
+  locations           Location[]
+  reviews             Review[]
+  automationRules     AutomationRule[]
+  responseTemplates   ResponseTemplate[]
+  campaigns           Campaign[]
+  notificationConfigs NotificationConfig[]
+
+  @@map("tenants")
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String
+  name          String?
+  passwordHash  String?
+  role          UserRole  @default(MEMBER)
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  accounts      Account[]
+  sessions      Session[]
+  reviewReplies ReviewReply[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================
+// GOOGLE BUSINESS INTEGRATION
+// ============================================
+
+model GoogleAccount {
+  id           String   @id @default(cuid())
+  googleId     String   @unique
+  email        String
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  scope        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  locations Location[]
+
+  @@index([tenantId])
+  @@map("google_accounts")
+}
+
+model Location {
+  id               String    @id @default(cuid())
+  googleAccountId  String
+  googleLocationId String
+  name             String
+  address          String?
+  phone            String?
+  website          String?
+  placeId          String?
+  isActive         Boolean   @default(true)
+  lastSyncAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  googleAccount   GoogleAccount    @relation(fields: [googleAccountId], references: [id], onDelete: Cascade)
+  reviews         Review[]
+  automationRules AutomationRule[]
+  campaigns       Campaign[]
+  locationMetrics LocationMetric[]
+
+  @@unique([tenantId, googleLocationId])
+  @@index([tenantId])
+  @@index([googleAccountId])
+  @@map("locations")
+}
+
+// ============================================
+// REVIEWS
+// ============================================
+
+model Review {
+  id             String     @id @default(cuid())
+  googleReviewId String     @unique
+  locationId     String
+
+  reviewerName     String
+  reviewerPhotoUrl String?
+  starRating       Int
+  comment          String?   @db.Text
+  reviewReplyText  String?   @db.Text
+  createTime       DateTime
+  updateTime       DateTime
+
+  language      String?
+  sentiment     Sentiment?
+  isNew         Boolean    @default(true)
+  isAutoReplied Boolean    @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  location Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  replies  ReviewReply[]
+
+  @@index([tenantId])
+  @@index([locationId])
+  @@index([starRating])
+  @@index([createTime])
+  @@index([tenantId, starRating, createTime])
+  @@map("reviews")
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+model ReviewReply {
+  id            String      @id @default(cuid())
+  reviewId      String
+  content       String      @db.Text
+  isAiGenerated Boolean     @default(false)
+  aiModel       String?
+  status        ReplyStatus @default(DRAFT)
+  sentAt        DateTime?
+  errorMessage  String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+  review      Review  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@map("review_replies")
+}
+
+enum ReplyStatus {
+  DRAFT
+  PENDING
+  SENT
+  FAILED
+}
+
+// ============================================
+// AUTOMATION
+// ============================================
+
+model AutomationRule {
+  id           String           @id @default(cuid())
+  name         String
+  description  String?
+  isActive     Boolean          @default(true)
+  priority     Int              @default(0)
+  conditions   Json
+  action       AutomationAction
+  templateId   String?
+  delayMinutes Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+
+  template   ResponseTemplate?     @relation(fields: [templateId], references: [id])
+  executions AutomationExecution[]
+
+  @@index([tenantId])
+  @@index([isActive])
+  @@map("automation_rules")
+}
+
+enum AutomationAction {
+  AUTO_REPLY
+  NOTIFY_TELEGRAM
+  NOTIFY_WHATSAPP
+  GENERATE_AI_REPLY
+}
+
+model AutomationExecution {
+  id           String          @id @default(cuid())
+  ruleId       String
+  reviewId     String
+  status       ExecutionStatus
+  result       Json?
+  errorMessage String?
+  executedAt   DateTime        @default(now())
+
+  rule AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([reviewId])
+  @@map("automation_executions")
+}
+
+enum ExecutionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+model ResponseTemplate {
+  id        String           @id @default(cuid())
+  name      String
+  language  String           @default("es")
+  category  TemplateCategory
+  content   String           @db.Text
+  isAiBase  Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  automationRules AutomationRule[]
+
+  @@index([tenantId])
+  @@index([category])
+  @@map("response_templates")
+}
+
+enum TemplateCategory {
+  POSITIVE_5_STAR
+  POSITIVE_4_STAR
+  NEUTRAL_3_STAR
+  NEGATIVE_2_STAR
+  NEGATIVE_1_STAR
+  GENERIC
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model NotificationConfig {
+  id        String              @id @default(cuid())
+  channel   NotificationChannel
+  isActive  Boolean             @default(true)
+  config    Json
+  notifyOn  Json
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, channel])
+  @@map("notification_configs")
+}
+
+enum NotificationChannel {
+  TELEGRAM
+  WHATSAPP
+  EMAIL
+  SLACK
+}
+
+// ============================================
+// CAMPAIGNS
+// ============================================
+
+model Campaign {
+  id          String         @id @default(cuid())
+  name        String
+  type        CampaignType
+  status      CampaignStatus @default(DRAFT)
+  message     String         @db.Text
+  reviewLink  String?
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+
+  recipients CampaignRecipient[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("campaigns")
+}
+
+enum CampaignType {
+  SMS
+  WHATSAPP
+  EMAIL
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  COMPLETED
+  FAILED
+}
+
+model CampaignRecipient {
+  id           String          @id @default(cuid())
+  campaignId   String
+  name         String?
+  contact      String
+  status       RecipientStatus @default(PENDING)
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  clickedAt    DateTime?
+  errorMessage String?
+  createdAt    DateTime        @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([status])
+  @@map("campaign_recipients")
+}
+
+enum RecipientStatus {
+  PENDING
+  SENT
+  DELIVERED
+  CLICKED
+  FAILED
+}
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+model LocationMetric {
+  id         String   @id @default(cuid())
+  locationId String
+  date       DateTime @db.Date
+
+  totalReviews     Int    @default(0)
+  newReviews       Int    @default(0)
+  avgRating        Float?
+  repliedCount     Int    @default(0)
+  autoRepliedCount Int    @default(0)
+
+  rating1Count Int @default(0)
+  rating2Count Int @default(0)
+  rating3Count Int @default(0)
+  rating4Count Int @default(0)
+  rating5Count Int @default(0)
+
+  positiveCount Int @default(0)
+  neutralCount  Int @default(0)
+  negativeCount Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, date])
+  @@index([locationId])
+  @@index([date])
+  @@map("location_metrics")
+}
+
+// ============================================
+// SYSTEM
+// ============================================
+
+model SyncJob {
+  id           String    @id @default(cuid())
+  type         String
+  status       JobStatus @default(PENDING)
+  tenantId     String?
+  locationId   String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  errorMessage String?
+  metadata     Json?
+  createdAt    DateTime  @default(now())
+
+  @@index([status])
+  @@index([tenantId])
+  @@map("sync_jobs")
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
