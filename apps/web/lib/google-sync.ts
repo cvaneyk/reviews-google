@@ -118,7 +118,9 @@ export async function syncReviewsForTenant(tenantId: string): Promise<SyncReview
       if (!localLocation) continue;
 
       try {
-        await syncLocationReviews(googleLoc, localLocation.id, tenantId, authHeader, result);
+        // El API v1 devuelve name="locations/{id}"; el endpoint v4 de reviews exige la ruta con cuenta
+        const reviewPath = `${account.name}/locations/${googleLocationId}`;
+        await syncLocationReviews(reviewPath, localLocation.id, tenantId, authHeader, result);
       } catch (err) {
         result.errors.push(
           `${googleLoc.title}: ${err instanceof Error ? err.message : String(err)}`
@@ -131,7 +133,7 @@ export async function syncReviewsForTenant(tenantId: string): Promise<SyncReview
 }
 
 async function syncLocationReviews(
-  googleLoc: { name: string; title: string },
+  reviewPath: string,
   locationId: string,
   tenantId: string,
   authHeader: Record<string, string>,
@@ -140,7 +142,7 @@ async function syncLocationReviews(
   let pageToken: string | undefined;
 
   do {
-    const url = new URL(`${GOOGLE_REVIEWS_API}/${googleLoc.name}/reviews`);
+    const url = new URL(`${GOOGLE_REVIEWS_API}/${reviewPath}/reviews`);
     url.searchParams.set("pageSize", "50");
     if (pageToken) url.searchParams.set("pageToken", pageToken);
 
