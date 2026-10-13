@@ -17,6 +17,15 @@ interface LocationsListProps {
   hasGoogleAccount: boolean;
 }
 
+async function readJson(res: Response) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: `El servidor devolvió ${res.status} ${res.statusText} en lugar de JSON` };
+  }
+}
+
 export function LocationsList({ locations, hasGoogleAccount }: LocationsListProps) {
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
@@ -26,7 +35,7 @@ export function LocationsList({ locations, hasGoogleAccount }: LocationsListProp
     setSyncing(true);
     try {
       const res = await fetch("/api/google/sync-locations", { method: "POST" });
-      const data = await res.json();
+      const data = await readJson(res);
       if (res.ok) {
         router.refresh();
       } else {
@@ -43,7 +52,7 @@ export function LocationsList({ locations, hasGoogleAccount }: LocationsListProp
     setSyncingReviews(true);
     try {
       const res = await fetch("/api/google/sync-reviews", { method: "POST" });
-      const data = await res.json();
+      const data = await readJson(res);
       if (res.ok) {
         alert(data.message + (data.errors ? `\n\nErrores:\n${data.errors.join("\n")}` : ""));
         router.refresh();
