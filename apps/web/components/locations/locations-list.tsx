@@ -20,6 +20,7 @@ interface LocationsListProps {
 export function LocationsList({ locations, hasGoogleAccount }: LocationsListProps) {
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
+  const [syncingReviews, setSyncingReviews] = useState(false);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -35,6 +36,24 @@ export function LocationsList({ locations, hasGoogleAccount }: LocationsListProp
       alert("Error de conexión");
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleSyncReviews = async () => {
+    setSyncingReviews(true);
+    try {
+      const res = await fetch("/api/google/sync-reviews", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message + (data.errors ? `\n\nErrores:\n${data.errors.join("\n")}` : ""));
+        router.refresh();
+      } else {
+        alert(data.details || data.error || "Error al sincronizar reseñas");
+      }
+    } catch {
+      alert("Error de conexión");
+    } finally {
+      setSyncingReviews(false);
     }
   };
 
@@ -82,14 +101,22 @@ export function LocationsList({ locations, hasGoogleAccount }: LocationsListProp
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
         <button
           onClick={handleSync}
-          disabled={syncing}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+          disabled={syncing || syncingReviews}
+          className="inline-flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-muted disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Sincronizando..." : "Sincronizar"}
+          {syncing ? "Sincronizando..." : "Sincronizar Ubicaciones"}
+        </button>
+        <button
+          onClick={handleSyncReviews}
+          disabled={syncing || syncingReviews}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+        >
+          <Star className={`w-4 h-4 ${syncingReviews ? "animate-pulse" : ""}`} />
+          {syncingReviews ? "Sincronizando..." : "Sincronizar Reseñas"}
         </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
