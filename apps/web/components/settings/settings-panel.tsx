@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@tremor/react";
-import { Building2, Link2, User, Key, Bot, MessageCircle, Save } from "lucide-react";
+import { Building2, Link2, User, Key, Bot, MessageCircle, Save, Lock } from "lucide-react";
 
 interface Tenant {
   id: string;
@@ -44,6 +44,13 @@ export function SettingsPanel({ tenant, googleAccounts }: SettingsPanelProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [passwords, setPasswords] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   const [config, setConfig] = useState({
     name: tenant?.name || "",
@@ -86,6 +93,38 @@ export function SettingsPanel({ tenant, googleAccounts }: SettingsPanelProps) {
       setMessage({ type: "error", text: "Error de conexión" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordMessage(null);
+
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      setPasswordMessage({ type: "error", text: "Las contraseñas nuevas no coinciden" });
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const res = await fetch("/api/account/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: passwords.currentPassword,
+          newPassword: passwords.newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordMessage({ type: "success", text: "Contraseña actualizada correctamente" });
+        setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      } else {
+        setPasswordMessage({ type: "error", text: data.error || "Error al cambiar la contraseña" });
+      }
+    } catch {
+      setPasswordMessage({ type: "error", text: "Error de conexión" });
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -346,6 +385,75 @@ export function SettingsPanel({ tenant, googleAccounts }: SettingsPanelProps) {
           {saving ? "Guardando..." : "Guardar Configuración"}
         </button>
       </div>
+
+      {/* Seguridad */}
+      <Card className="p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center">
+            <Lock className="w-6 h-6 text-amber-500" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold mb-4">Seguridad</h3>
+
+            {passwordMessage && (
+              <div className={`mb-4 p-3 rounded-lg text-sm ${passwordMessage.type === "success" ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"}`}>
+                {passwordMessage.text}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1">Contraseña actual</label>
+                <input
+                  type="password"
+                  value={passwords.currentPassword}
+                  onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
+                  autoComplete="current-password"
+                  className="w-full px-3 py-2 border rounded-lg bg-background"
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-1">Nueva contraseña</label>
+                  <input
+                    type="password"
+                    value={passwords.newPassword}
+                    onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                    autoComplete="new-password"
+                    className="w-full px-3 py-2 border rounded-lg bg-background"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Mínimo 8 caracteres</p>
+                </div>
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-1">Repetir nueva contraseña</label>
+                  <input
+                    type="password"
+                    value={passwords.confirmPassword}
+                    onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                    autoComplete="new-password"
+                    className="w-full px-3 py-2 border rounded-lg bg-background"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end pt-1">
+                <button
+                  onClick={handleChangePassword}
+                  disabled={
+                    changingPassword ||
+                    !passwords.currentPassword ||
+                    !passwords.newPassword ||
+                    !passwords.confirmPassword
+                  }
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                >
+                  <Lock className="w-4 h-4" />
+                  {changingPassword ? "Cambiando..." : "Cambiar Contraseña"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }
