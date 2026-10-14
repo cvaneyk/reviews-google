@@ -57,3 +57,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Tooltip de los gráficos de Tremor/Recharts: sin tema de Tremor queda transparente */
+.recharts-tooltip-wrapper {
+  background-color: hsl(var(--popover));
+}

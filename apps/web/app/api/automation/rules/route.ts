@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@repo/database";
+import { logActivity } from "@/lib/activity";
 
 export async function POST(request: Request) {
   try {
@@ -32,6 +33,15 @@ export async function POST(request: Request) {
         delayMinutes: data.delayMinutes || 0,
         priority: (maxPriority._max.priority || 0) + 1,
       },
+    });
+
+    await logActivity({
+      tenantId,
+      userId: (session.user as any).id,
+      category: "AUTOMATION",
+      type: "rule.created",
+      message: `Regla "${rule.name}" creada`,
+      metadata: { ruleId: rule.id, action: rule.action },
     });
 
     return NextResponse.json({ success: true, rule });

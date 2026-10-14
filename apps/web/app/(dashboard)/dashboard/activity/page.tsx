@@ -1,45 +1,49 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { db } from "@repo/database";
+import { db, type ActivityCategory, type ActivityStatus } from "@repo/database";
 import { ActivityList } from "@/components/activity/activity-list";
 
-const VALID_STATUSES = ["SUCCESS", "FAILED", "SKIPPED"] as const;
+const VALID_CATEGORIES: ActivityCategory[] = [
+  "REVIEW",
+  "REPLY",
+  "AUTOMATION",
+  "SYNC",
+  "SETTINGS",
+  "ACCOUNT",
+];
+const VALID_STATUSES: ActivityStatus[] = ["SUCCESS", "FAILED", "SKIPPED", "INFO"];
 
-type Status = (typeof VALID_STATUSES)[number];
-
-async function getExecutions(tenantId: string, status?: Status) {
-  const executions = await db.automationExecution.findMany({
+async function getActivity(
+  tenantId: string,
+  category?: ActivityCategory,
+  status?: ActivityStatus
+) {
+  const logs = await db.activityLog.findMany({
     where: {
-      rule: { tenantId },
+      tenantId,
+      ...(category ? { category } : {}),
       ...(status ? { status } : {}),
     },
-    include: { rule: { select: { name: true, action: true } } },
-    orderBy: { executedAt: "desc" },
-    take: 100,
+    include: { user: { select: { name: true, email: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 200,
   });
 
-  const reviewIds = [...new Set(executions.map((e) => e.reviewId))];
-  const reviews = await db.review.findMany({
-    where: { id: { in: reviewIds } },
-    select: { id: true, reviewerName: true, starRating: true, comment: true },
-  });
-  const reviewsById = new Map(reviews.map((r) => [r.id, r]));
-
-  return executions.map((execution) => ({
-    id: execution.id,
-    status: execution.status,
-    errorMessage: execution.errorMessage,
-    executedAt: execution.executedAt.toISOString(),
-    ruleName: execution.rule.name,
-    action: execution.rule.action,
-    review: reviewsById.get(execution.reviewId) ?? null,
+  return logs.map((log) => ({
+    id: log.id,
+    category: log.category,
+    type: log.type,
+    status: log.status,
+    message: log.message,
+    createdAt: log.createdAt.toISOString(),
+    actor: log.user ? log.user.name || log.user.email : null,
   }));
 }
 
 export default async function ActivityPage({
   searchParams,
 }: {
-  searchParams: { status?: string };
+  searchParams: { category?: string; status?: string };
 }) {
   const session = await getServerSession(authOptions);
   const tenantId = (session?.user as any)?.tenantId;
@@ -52,19 +56,24 @@ export default async function ActivityPage({
     );
   }
 
+  const category = VALID_CATEGORIES.find((c) => c === searchParams.category);
   const status = VALID_STATUSES.find((s) => s === searchParams.status);
-  const executions = await getExecutions(tenantId, status);
+  const logs = await getActivity(tenantId, category, status);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Actividad</h1>
         <p className="text-muted-foreground">
-          Registro de las automatizaciones ejecutadas sobre tus reseñas
+          Registro de todo lo que ocurre en tu cuenta: reseñas, respuestas, automatizaciones y cambios
         </p>
       </div>
 
-      <ActivityList executions={executions} activeStatus={status ?? "ALL"} />
+      <ActivityList
+        logs={logs}
+        activeCategory={category ?? "ALL"}
+        activeStatus={status ?? "ALL"}
+      />
     </div>
   );
 }

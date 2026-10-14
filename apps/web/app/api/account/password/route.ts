@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { db } from "@repo/database";
+import { logActivity } from "@/lib/activity";
 
 export async function PUT(request: Request) {
   try {
@@ -52,6 +53,14 @@ export async function PUT(request: Request) {
     await db.user.update({
       where: { id: userId },
       data: { passwordHash: await bcrypt.hash(newPassword, 12) },
+    });
+
+    await logActivity({
+      tenantId: (session.user as any).tenantId,
+      userId,
+      category: "ACCOUNT",
+      type: "account.password_changed",
+      message: `Contraseña cambiada por ${session.user.email}`,
     });
 
     return NextResponse.json({ success: true });

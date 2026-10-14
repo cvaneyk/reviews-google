@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@repo/database";
+import { logActivity } from "@/lib/activity";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
@@ -82,6 +83,13 @@ export async function GET(request: Request) {
         expiresAt,
         scope: tokens.scope || "",
       },
+    });
+
+    await logActivity({
+      tenantId: state,
+      category: "ACCOUNT",
+      type: "google.connected",
+      message: `Cuenta de Google ${userInfo.email} conectada`,
     });
 
     return NextResponse.redirect(

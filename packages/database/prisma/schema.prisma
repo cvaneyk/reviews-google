@@ -43,6 +43,7 @@ model Tenant {
   responseTemplates   ResponseTemplate[]
   campaigns           Campaign[]
   notificationConfigs NotificationConfig[]
+  activityLogs        ActivityLog[]
 
   @@map("tenants")
 }
@@ -71,6 +72,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   reviewReplies ReviewReply[]
+  activityLogs  ActivityLog[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -470,6 +472,47 @@ model LocationMetric {
   @@index([locationId])
   @@index([date])
   @@map("location_metrics")
+}
+
+// ============================================
+// ACTIVITY LOG
+// ============================================
+
+model ActivityLog {
+  id        String           @id @default(cuid())
+  category  ActivityCategory
+  type      String
+  status    ActivityStatus   @default(SUCCESS)
+  message   String           @db.Text
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // null = acción del sistema (cron, automatizaciones)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, category])
+  @@map("activity_logs")
+}
+
+enum ActivityCategory {
+  REVIEW
+  REPLY
+  AUTOMATION
+  SYNC
+  SETTINGS
+  ACCOUNT
+}
+
+enum ActivityStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+  INFO
 }
 
 // ============================================

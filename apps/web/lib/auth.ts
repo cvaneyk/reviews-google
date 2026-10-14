@@ -3,6 +3,7 @@ import { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@repo/database";
+import { logActivity } from "./activity";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db) as NextAuthOptions["adapter"],
@@ -41,8 +42,25 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!isValid) {
+          await logActivity({
+            tenantId: user.tenantId,
+            userId: user.id,
+            category: "ACCOUNT",
+            type: "account.login_failed",
+            status: "FAILED",
+            message: `Intento de inicio de sesión fallido para ${user.email}`,
+          });
           throw new Error("Credenciales inválidas");
         }
+
+        await logActivity({
+          tenantId: user.tenantId,
+          userId: user.id,
+          category: "ACCOUNT",
+          type: "account.login",
+          status: "INFO",
+          message: `${user.name || user.email} inició sesión`,
+        });
 
         return {
           id: user.id,

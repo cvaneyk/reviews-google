@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@repo/database";
 import { syncReviewsForTenant } from "@/lib/google-sync";
 import { runAutomationForReview } from "@/lib/automation";
+import { logActivity } from "@/lib/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,24 @@ async function handler(request: Request) {
         }
       }
 
+      // Las sincronizaciones automáticas sin cambios no se registran para no llenar el log
+      if (result.newReviewIds.length > 0 || result.errors.length > 0) {
+        await logActivity({
+          tenantId: tenant.id,
+          category: "SYNC",
+          type: "sync.reviews",
+          status: result.errors.length > 0 ? "FAILED" : "SUCCESS",
+          message: `Sincronización automática: ${result.newReviewIds.length} reseñas nuevas`,
+          metadata: {
+            source: "cron",
+            totalReviews: result.totalReviews,
+            newReviews: result.newReviewIds.length,
+            automationsRun,
+            errors: result.errors,
+          },
+        });
+      }
+
       summaries.push({
         tenantId: tenant.id,
         tenantName: tenant.name,
@@ -63,6 +82,16 @@ async function handler(request: Request) {
         errors: result.errors.length > 0 ? result.errors : undefined,
       });
     } catch (err) {
+      await logActivity({
+        tenantId: tenant.id,
+        category: "SYNC",
+        type: "sync.reviews",
+        status: "FAILED",
+        message: `Error en la sincronización automática: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        metadata: { source: "cron" },
+      });
       summaries.push({
         tenantId: tenant.id,
         tenantName: tenant.name,

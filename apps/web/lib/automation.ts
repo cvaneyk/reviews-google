@@ -2,6 +2,7 @@ import { db } from "@repo/database";
 import Anthropic from "@anthropic-ai/sdk";
 import { detectLanguage } from "@repo/shared";
 import { publishReplyToGoogle } from "./google-reply";
+import { logActivity, stars } from "./activity";
 
 interface RuleConditions {
   minRating?: number;
@@ -307,14 +308,25 @@ export async function runAutomationForReview(
     results.push(result);
 
     if (!options.testMode) {
+      const status = result.skipped ? "SKIPPED" : result.success ? "SUCCESS" : "FAILED";
+
       await db.automationExecution.create({
         data: {
           ruleId: rule.id,
           reviewId: review.id,
-          status: result.skipped ? "SKIPPED" : result.success ? "SUCCESS" : "FAILED",
+          status,
           errorMessage: result.success ? null : result.message,
           result: result.data ? (result.data as object) : undefined,
         },
+      });
+
+      await logActivity({
+        tenantId,
+        category: "AUTOMATION",
+        type: "rule.executed",
+        status,
+        message: `Regla "${rule.name}" sobre ${stars(review.starRating)} ${review.reviewerName}: ${result.message}`,
+        metadata: { ruleId: rule.id, reviewId: review.id, action: rule.action },
       });
     }
   }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@repo/database";
+import { logActivity } from "@/lib/activity";
 
 const GOOGLE_BUSINESS_API = "https://mybusinessbusinessinformation.googleapis.com/v1";
 
@@ -148,6 +149,15 @@ export async function POST() {
         totalLocations++;
       }
     }
+
+    await logActivity({
+      tenantId,
+      userId: (session.user as any).id,
+      category: "SYNC",
+      type: "sync.locations",
+      message: `Sincronizadas ${totalLocations} ubicaciones desde Google`,
+      metadata: { count: totalLocations },
+    });
 
     return NextResponse.json({
       success: true,

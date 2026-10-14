@@ -1,5 +1,6 @@
 import { db } from "@repo/database";
 import { getGoogleCredentials } from "./google-auth";
+import { logActivity, stars } from "./activity";
 
 const GOOGLE_ACCOUNTS_API = "https://mybusinessaccountmanagement.googleapis.com/v1";
 const GOOGLE_BUSINESS_API = "https://mybusinessbusinessinformation.googleapis.com/v1";
@@ -66,7 +67,13 @@ export async function syncReviewsForTenant(tenantId: string): Promise<SyncReview
       try {
         // El API v1 devuelve name="locations/{id}"; el endpoint v4 de reviews exige la ruta con cuenta
         const reviewPath = `${account.name}/locations/${googleLocationId}`;
-        await syncLocationReviews(reviewPath, localLocation.id, tenantId, authHeader, result);
+        await syncLocationReviews(
+          reviewPath,
+          { id: localLocation.id, name: googleLoc.title },
+          tenantId,
+          authHeader,
+          result
+        );
       } catch (err) {
         result.errors.push(
           `${googleLoc.title}: ${err instanceof Error ? err.message : String(err)}`
@@ -80,11 +87,12 @@ export async function syncReviewsForTenant(tenantId: string): Promise<SyncReview
 
 async function syncLocationReviews(
   reviewPath: string,
-  locationId: string,
+  location: { id: string; name: string },
   tenantId: string,
   authHeader: Record<string, string>,
   result: SyncReviewsResult
 ) {
+  const locationId = location.id;
   let pageToken: string | undefined;
 
   do {
@@ -130,6 +138,14 @@ async function syncLocationReviews(
           select: { id: true },
         });
         result.newReviewIds.push(created.id);
+
+        await logActivity({
+          tenantId,
+          category: "REVIEW",
+          type: "review.received",
+          message: `Nueva reseña ${stars(data.starRating)} de ${data.reviewerName} en ${location.name}`,
+          metadata: { reviewId: created.id, starRating: data.starRating },
+        });
       }
 
       result.totalReviews++;

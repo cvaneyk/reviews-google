@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@repo/database";
+import { logActivity } from "@/lib/activity";
 
 export async function PUT(
   request: Request,
@@ -36,6 +37,28 @@ export async function PUT(
       },
     });
 
+    const toggled = rule.isActive !== existingRule.isActive;
+    const changedFields: string[] = (
+      ["name", "description", "action", "delayMinutes"] as const
+    ).filter((field) => rule[field] !== existingRule[field]);
+    if (JSON.stringify(rule.conditions) !== JSON.stringify(existingRule.conditions)) {
+      changedFields.push("conditions");
+    }
+
+    if (toggled || changedFields.length > 0) {
+      await logActivity({
+        tenantId,
+        userId: (session.user as any).id,
+        category: "AUTOMATION",
+        type: toggled && changedFields.length === 0 ? "rule.toggled" : "rule.updated",
+        message:
+          toggled && changedFields.length === 0
+            ? `Regla "${rule.name}" ${rule.isActive ? "activada" : "desactivada"}`
+            : `Regla "${rule.name}" modificada`,
+        metadata: { ruleId: rule.id, changedFields, isActive: rule.isActive },
+      });
+    }
+
     return NextResponse.json({ success: true, rule });
   } catch (error) {
     console.error("Update rule error:", error);
@@ -65,6 +88,15 @@ export async function DELETE(
 
     await db.automationRule.delete({
       where: { id: params.ruleId },
+    });
+
+    await logActivity({
+      tenantId,
+      userId: (session.user as any).id,
+      category: "AUTOMATION",
+      type: "rule.deleted",
+      message: `Regla "${existingRule.name}" eliminada`,
+      metadata: { ruleId: existingRule.id, action: existingRule.action },
     });
 
     return NextResponse.json({ success: true });

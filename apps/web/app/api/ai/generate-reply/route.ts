@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { authOptions } from "@/lib/auth";
 import { db } from "@repo/database";
 import { detectLanguage } from "@repo/shared";
+import { logActivity, stars } from "@/lib/activity";
 
 export async function POST(request: Request) {
   try {
@@ -106,6 +107,16 @@ Reseña: ${review.comment || "(Sin comentario)"}`;
     if (!textBlock || textBlock.type !== "text") {
       throw new Error("No se recibió respuesta de texto");
     }
+
+    await logActivity({
+      tenantId,
+      userId: (session.user as any).id,
+      category: "REPLY",
+      type: "reply.ai_generated",
+      status: "INFO",
+      message: `Respuesta generada con IA para ${stars(review.starRating)} ${review.reviewerName}`,
+      metadata: { reviewId: review.id, model },
+    });
 
     return NextResponse.json({
       reply: textBlock.text,

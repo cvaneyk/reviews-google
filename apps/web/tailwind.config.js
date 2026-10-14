@@ -6,6 +6,13 @@ module.exports = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./node_modules/@tremor/**/*.{js,ts,jsx,tsx}",
   ],
+  // Tremor genera dinámicamente las clases de color de los gráficos (fill-amber-500...)
+  safelist: [
+    {
+      pattern:
+        /^(fill|stroke)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-500$/,
+    },
+  ],
   theme: {
     extend: {
       colors: {

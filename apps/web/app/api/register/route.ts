@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@repo/database";
 import { slugify } from "@repo/shared";
+import { logActivity } from "@/lib/activity";
 
 export async function POST(request: Request) {
   try {
@@ -44,6 +45,14 @@ export async function POST(request: Request) {
       include: {
         users: true,
       },
+    });
+
+    await logActivity({
+      tenantId: tenant.id,
+      userId: tenant.users[0].id,
+      category: "ACCOUNT",
+      type: "account.created",
+      message: `Cuenta "${businessName}" creada por ${email}`,
     });
 
     return NextResponse.json({
