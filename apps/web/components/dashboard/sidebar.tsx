@@ -11,7 +11,6 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  Bell,
   Activity,
 } from "lucide-react";
 
@@ -22,7 +21,6 @@ const navigation = [
   { name: "Automatización", href: "/dashboard/automation", icon: Zap },
   { name: "Analíticas", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Actividad", href: "/dashboard/activity", icon: Activity },
-  { name: "Notificaciones", href: "/dashboard/notifications", icon: Bell },
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];
 
