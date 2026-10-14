@@ -14,6 +14,7 @@ interface Review {
   reviewReplyText: string | null;
   createTime: Date;
   location: { name: string };
+  replies: { id: string; content: string; status: string; errorMessage: string | null }[];
 }
 
 interface ReviewsListProps {
@@ -30,7 +31,7 @@ export function ReviewsList({ reviews }: ReviewsListProps) {
 
   const openReplyModal = (review: Review) => {
     setSelectedReview(review);
-    setReplyText(review.reviewReplyText || "");
+    setReplyText(review.reviewReplyText || review.replies[0]?.content || "");
   };
 
   const closeModal = () => {
@@ -137,6 +138,20 @@ export function ReviewsList({ reviews }: ReviewsListProps) {
                 {review.comment && (
                   <p className="text-sm">{review.comment}</p>
                 )}
+                {!review.reviewReplyText && review.replies[0] && (
+                  <div className="mt-3 pl-4 border-l-2 border-violet-400/50">
+                    <p className="text-sm text-violet-600 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      Borrador de IA pendiente de aprobación
+                    </p>
+                    <p className="text-sm">{review.replies[0].content}</p>
+                    {review.replies[0].errorMessage && (
+                      <p className="text-xs text-red-600 mt-1">
+                        No se pudo publicar: {review.replies[0].errorMessage}
+                      </p>
+                    )}
+                  </div>
+                )}
                 {review.reviewReplyText && (
                   <div className="mt-3 pl-4 border-l-2 border-primary/30">
                     <p className="text-sm text-muted-foreground">Tu respuesta:</p>
@@ -153,6 +168,8 @@ export function ReviewsList({ reviews }: ReviewsListProps) {
                     <Pencil className="w-3 h-3" />
                     Editar
                   </>
+                ) : review.replies[0] ? (
+                  "Revisar borrador"
                 ) : (
                   "Responder"
                 )}

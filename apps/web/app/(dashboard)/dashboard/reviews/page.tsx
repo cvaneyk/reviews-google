@@ -6,7 +6,15 @@ import { ReviewsList } from "@/components/reviews/reviews-list";
 async function getReviews(tenantId: string) {
   return db.review.findMany({
     where: { tenantId },
-    include: { location: true },
+    include: {
+      location: true,
+      replies: {
+        where: { status: { in: ["DRAFT", "PENDING", "FAILED"] } },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { id: true, content: true, status: true, errorMessage: true },
+      },
+    },
     orderBy: { createTime: "desc" },
     take: 50,
   });

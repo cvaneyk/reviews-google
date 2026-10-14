@@ -184,6 +184,7 @@ model Location {
 model Review {
   id             String     @id @default(cuid())
   googleReviewId String     @unique
+  googleReviewName String?  @db.Text
   locationId     String
 
   reviewerName     String

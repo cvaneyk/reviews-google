@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   Bell,
+  Activity,
 } from "lucide-react";
 
 const navigation = [
@@ -20,6 +21,7 @@ const navigation = [
   { name: "Ubicaciones", href: "/dashboard/locations", icon: MapPin },
   { name: "Automatización", href: "/dashboard/automation", icon: Zap },
   { name: "Analíticas", href: "/dashboard/analytics", icon: BarChart3 },
+  { name: "Actividad", href: "/dashboard/activity", icon: Activity },
   { name: "Notificaciones", href: "/dashboard/notifications", icon: Bell },
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];

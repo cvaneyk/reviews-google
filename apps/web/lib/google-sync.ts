@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { getGoogleCredentials } from "./google-auth";
 
 const GOOGLE_ACCOUNTS_API = "https://mybusinessaccountmanagement.googleapis.com/v1";
 const GOOGLE_BUSINESS_API = "https://mybusinessbusinessinformation.googleapis.com/v1";
@@ -18,62 +19,8 @@ export interface SyncReviewsResult {
   errors: string[];
 }
 
-async function getAccessToken(googleAccount: {
-  id: string;
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
-}, tenantId: string) {
-  if (new Date(googleAccount.expiresAt) > new Date()) {
-    return googleAccount.accessToken;
-  }
-
-  const tenant = await db.tenant.findUnique({
-    where: { id: tenantId },
-    select: { googleClientId: true, googleClientSecret: true },
-  });
-
-  if (!tenant?.googleClientId || !tenant?.googleClientSecret) {
-    throw new Error("El tenant no tiene credenciales de Google OAuth configuradas");
-  }
-
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: tenant.googleClientId,
-      client_secret: tenant.googleClientSecret,
-      refresh_token: googleAccount.refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
-
-  const tokens = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      `No se pudo renovar el token de Google: ${tokens.error_description || tokens.error}`
-    );
-  }
-
-  await db.googleAccount.update({
-    where: { id: googleAccount.id },
-    data: {
-      accessToken: tokens.access_token,
-      expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
-    },
-  });
-
-  return tokens.access_token as string;
-}
 
 export async function syncReviewsForTenant(tenantId: string): Promise<SyncReviewsResult> {
-  const googleAccount = await db.googleAccount.findFirst({ where: { tenantId } });
-
-  if (!googleAccount) {
-    throw new Error("No hay cuenta de Google conectada");
-  }
-
   const locations = await db.location.findMany({
     where: { tenantId },
     select: { id: true, googleLocationId: true },
@@ -83,8 +30,7 @@ export async function syncReviewsForTenant(tenantId: string): Promise<SyncReview
     throw new Error("No hay ubicaciones sincronizadas. Sincroniza ubicaciones primero.");
   }
 
-  const accessToken = await getAccessToken(googleAccount, tenantId);
-  const authHeader = { Authorization: `Bearer ${accessToken}` };
+  const { authHeader } = await getGoogleCredentials(tenantId);
 
   const accountsRes = await fetch(`${GOOGLE_ACCOUNTS_API}/accounts`, { headers: authHeader });
   const accountsData = await accountsRes.json();
@@ -161,6 +107,7 @@ async function syncLocationReviews(
       const data = {
         locationId,
         tenantId,
+        googleReviewName: review.name,
         reviewerName: review.reviewer?.displayName || "Usuario anónimo",
         reviewerPhotoUrl: review.reviewer?.profilePhotoUrl || null,
         starRating: STAR_RATINGS[review.starRating] ?? 0,
