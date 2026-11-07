@@ -254,6 +254,29 @@ async function executeRule(
   }
 }
 
+// Una reseña nueva para nosotros puede tener ya respuesta en Google (primera importación):
+// no se automatiza para no sobrescribir esa respuesta
+export async function runAutomationsForNewReviews(tenantId: string, reviewIds: string[]) {
+  const unanswered = await db.review.findMany({
+    where: { id: { in: reviewIds }, tenantId, reviewReplyText: null },
+    select: { id: true },
+  });
+
+  const errors: string[] = [];
+  let automationsRun = 0;
+
+  for (const { id } of unanswered) {
+    try {
+      await runAutomationForReview(id, tenantId);
+      automationsRun++;
+    } catch (err) {
+      errors.push(`Automatización de ${id}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  return { automationsRun, errors };
+}
+
 export async function runAutomationForReview(
   reviewId: string,
   tenantId: string,

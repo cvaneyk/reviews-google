@@ -137,7 +137,7 @@ export function SettingsPanel({ tenant, googleAccounts }: SettingsPanelProps) {
       )}
 
       {/* Información del Negocio */}
-      <Card className="p-6">
+      <Card data-tour="settings-business" className="p-6">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
             <Building2 className="w-6 h-6 text-primary" />
@@ -164,7 +164,7 @@ export function SettingsPanel({ tenant, googleAccounts }: SettingsPanelProps) {
       </Card>
 
       {/* Google Business Profile */}
-      <Card className="p-6">
+      <Card data-tour="settings-google" className="p-6">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center">
             <Link2 className="w-6 h-6 text-red-500" />
@@ -173,6 +173,36 @@ export function SettingsPanel({ tenant, googleAccounts }: SettingsPanelProps) {
             <h3 className="font-semibold mb-4">Google Business Profile</h3>
 
             <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-muted text-sm space-y-2">
+                <p className="font-medium">Solicita antes el acceso a la API de Google</p>
+                <p className="text-muted-foreground">
+                  Google tiene que aprobar tu proyecto para poder leer y responder reseñas. Necesitas un perfil de empresa verificado y activo desde hace más de 60 días y una web del negocio. Usa un email propietario o administrador del perfil.
+                </p>
+                <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                  <li>
+                    Crea un proyecto en{" "}
+                    <a href="https://console.cloud.google.com" target="_blank" rel="noopener" className="text-primary hover:underline">Google Cloud</a>{" "}
+                    y anota su número de proyecto.
+                  </li>
+                  <li>
+                    Envía el{" "}
+                    <a href="https://support.google.com/business/contact/api_default" target="_blank" rel="noopener" className="text-primary hover:underline">formulario de acceso de Google</a>{" "}
+                    eligiendo &quot;Application for Basic API Access&quot;.
+                  </li>
+                  <li>
+                    Espera el email de respuesta. También puedes mirar la cuota de la API en Google Cloud: 0 QPM significa pendiente y 300 QPM, aprobado.
+                  </li>
+                  <li>
+                    Cuando te aprueben,{" "}
+                    <a href="https://developers.google.com/my-business/content/basic-setup" target="_blank" rel="noopener" className="text-primary hover:underline">activa las APIs</a>, crea las credenciales OAuth y pégalas aquí.
+                  </li>
+                </ol>
+                <p className="text-muted-foreground">
+                  Más detalles en los{" "}
+                  <a href="https://developers.google.com/my-business/content/prereqs" target="_blank" rel="noopener" className="text-primary hover:underline">requisitos oficiales</a>.
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-muted-foreground mb-1">Google Client ID</label>
@@ -219,7 +249,7 @@ export function SettingsPanel({ tenant, googleAccounts }: SettingsPanelProps) {
       </Card>
 
       {/* Anthropic / Claude AI */}
-      <Card className="p-6">
+      <Card data-tour="settings-ai" className="p-6">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-lg bg-violet-500/10 flex items-center justify-center">
             <Bot className="w-6 h-6 text-violet-500" />
@@ -301,7 +331,7 @@ export function SettingsPanel({ tenant, googleAccounts }: SettingsPanelProps) {
       </Card>
 
       {/* Telegram */}
-      <Card className="p-6">
+      <Card data-tour="settings-telegram" className="p-6">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
             <Key className="w-6 h-6 text-blue-500" />
@@ -341,7 +371,7 @@ export function SettingsPanel({ tenant, googleAccounts }: SettingsPanelProps) {
       </Card>
 
       {/* WhatsApp / Evolution API */}
-      <Card className="p-6">
+      <Card data-tour="settings-whatsapp" className="p-6">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
             <MessageCircle className="w-6 h-6 text-green-500" />
@@ -379,6 +409,7 @@ export function SettingsPanel({ tenant, googleAccounts }: SettingsPanelProps) {
         <button
           onClick={handleSave}
           disabled={saving}
+          data-tour="settings-save"
           className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
         >
           <Save className="w-5 h-5" />
@@ -387,7 +418,7 @@ export function SettingsPanel({ tenant, googleAccounts }: SettingsPanelProps) {
       </div>
 
       {/* Seguridad */}
-      <Card className="p-6">
+      <Card data-tour="settings-security" className="p-6">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center">
             <Lock className="w-6 h-6 text-amber-500" />

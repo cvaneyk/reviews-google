@@ -48,7 +48,7 @@ export function AnalyticsDashboard({ analytics, from, to }: AnalyticsDashboardPr
 
   return (
     <div className="space-y-6">
-      <Card className="p-4">
+      <Card data-tour="analytics-range" className="p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <label className="block text-sm text-muted-foreground mb-1">Desde</label>
@@ -91,7 +91,7 @@ export function AnalyticsDashboard({ analytics, from, to }: AnalyticsDashboardPr
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div data-tour="analytics-metrics" className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card decoration="top" decorationColor="blue">
           <div className="flex items-center gap-3">
             <TrendingUp className="w-8 h-8 text-blue-500" />
@@ -123,7 +123,7 @@ export function AnalyticsDashboard({ analytics, from, to }: AnalyticsDashboardPr
         </Card>
       </div>
 
-      <Card>
+      <Card data-tour="analytics-charts">
         <Text className="font-medium mb-4">Reseñas por periodo</Text>
         {isEmpty ? (
           <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">

@@ -188,6 +188,7 @@ export function AutomationRules({ rules }: AutomationRulesProps) {
           </p>
           <button
             onClick={openCreateModal}
+            data-tour="automation-new"
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
           >
             <Plus className="w-4 h-4" />
@@ -206,6 +207,7 @@ export function AutomationRules({ rules }: AutomationRulesProps) {
         </p>
         <button
           onClick={openCreateModal}
+          data-tour="automation-new"
           className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
         >
           <Plus className="w-4 h-4" />
@@ -249,7 +251,7 @@ export function AutomationRules({ rules }: AutomationRulesProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div data-tour="automation-rule-controls" className="flex items-center gap-2">
                 <button
                   onClick={() => toggleActive(rule)}
                   className={`px-3 py-1 rounded text-xs ${

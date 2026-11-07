@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { syncReviewsForTenant } from "@/lib/google-sync";
+import { runAutomationsForNewReviews } from "@/lib/automation";
 import { logActivity } from "@/lib/activity";
 
 export async function POST() {
@@ -15,6 +16,11 @@ export async function POST() {
 
   try {
     const result = await syncReviewsForTenant(tenantId);
+    const { automationsRun, errors } = await runAutomationsForNewReviews(
+      tenantId,
+      result.newReviewIds
+    );
+    result.errors.push(...errors);
 
     await logActivity({
       tenantId,
@@ -27,6 +33,7 @@ export async function POST() {
         source: "manual",
         totalReviews: result.totalReviews,
         newReviews: result.newReviewIds.length,
+        automationsRun,
         errors: result.errors,
       },
     });

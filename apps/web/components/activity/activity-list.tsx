@@ -78,7 +78,7 @@ function FilterLink({ href, active, label }: { href: string; active: boolean; la
 export function ActivityList({ logs, activeCategory, activeStatus }: ActivityListProps) {
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
+      <div data-tour="activity-filters" className="space-y-2">
         <div className="flex flex-wrap gap-2">
           {CATEGORY_FILTERS.map((filter) => (
             <FilterLink
@@ -102,7 +102,7 @@ export function ActivityList({ logs, activeCategory, activeStatus }: ActivityLis
       </div>
 
       {logs.length === 0 ? (
-        <Card>
+        <Card data-tour="activity-log">
           <div className="text-center py-12">
             <Activity className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="font-semibold mb-2">Sin actividad todavía</h3>
@@ -112,7 +112,7 @@ export function ActivityList({ logs, activeCategory, activeStatus }: ActivityLis
           </div>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div data-tour="activity-log" className="space-y-3">
           {logs.map((log) => {
             const meta = STATUS_META[log.status] ?? STATUS_META.INFO;
             const CategoryIcon = CATEGORY_ICONS[log.category] ?? Activity;

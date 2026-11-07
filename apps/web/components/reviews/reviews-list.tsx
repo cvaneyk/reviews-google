@@ -104,7 +104,7 @@ export function ReviewsList({ reviews }: ReviewsListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div data-tour="reviews-filters" className="flex gap-2">
         {(["all", "pending", "replied"] as const).map((f) => (
           <button
             key={f}
@@ -161,6 +161,7 @@ export function ReviewsList({ reviews }: ReviewsListProps) {
               </div>
               <button
                 onClick={() => openReplyModal(review)}
+                data-tour="reviews-reply"
                 className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 flex items-center gap-1"
               >
                 {review.reviewReplyText ? (

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@repo/database";
 import { syncReviewsForTenant } from "@/lib/google-sync";
-import { runAutomationForReview } from "@/lib/automation";
+import { runAutomationsForNewReviews } from "@/lib/automation";
 import { logActivity } from "@/lib/activity";
 
 export const dynamic = "force-dynamic";
@@ -42,18 +42,11 @@ async function handler(request: Request) {
   for (const tenant of tenants) {
     try {
       const result = await syncReviewsForTenant(tenant.id);
-      let automationsRun = 0;
-
-      for (const reviewId of result.newReviewIds) {
-        try {
-          await runAutomationForReview(reviewId, tenant.id);
-          automationsRun++;
-        } catch (err) {
-          result.errors.push(
-            `Automatización de ${reviewId}: ${err instanceof Error ? err.message : String(err)}`
-          );
-        }
-      }
+      const { automationsRun, errors } = await runAutomationsForNewReviews(
+        tenant.id,
+        result.newReviewIds
+      );
+      result.errors.push(...errors);
 
       // Las sincronizaciones automáticas sin cambios no se registran para no llenar el log
       if (result.newReviewIds.length > 0 || result.errors.length > 0) {

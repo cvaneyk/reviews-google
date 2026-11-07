@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useProductTour } from "@/components/tour/use-product-tour";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -12,20 +13,26 @@ import {
   Settings,
   LogOut,
   Activity,
+  HelpCircle,
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Reseñas", href: "/dashboard/reviews", icon: MessageSquare },
-  { name: "Ubicaciones", href: "/dashboard/locations", icon: MapPin },
-  { name: "Automatización", href: "/dashboard/automation", icon: Zap },
-  { name: "Analíticas", href: "/dashboard/analytics", icon: BarChart3 },
-  { name: "Actividad", href: "/dashboard/activity", icon: Activity },
-  { name: "Configuración", href: "/dashboard/settings", icon: Settings },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, tour: "nav-dashboard" },
+  { name: "Reseñas", href: "/dashboard/reviews", icon: MessageSquare, tour: "nav-reviews" },
+  { name: "Ubicaciones", href: "/dashboard/locations", icon: MapPin, tour: "nav-locations" },
+  { name: "Automatización", href: "/dashboard/automation", icon: Zap, tour: "nav-automation" },
+  { name: "Analíticas", href: "/dashboard/analytics", icon: BarChart3, tour: "nav-analytics" },
+  { name: "Actividad", href: "/dashboard/activity", icon: Activity, tour: "nav-activity" },
+  { name: "Configuración", href: "/dashboard/settings", icon: Settings, tour: "nav-settings" },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  autoStartTour: boolean;
+}
+
+export function Sidebar({ autoStartTour }: SidebarProps) {
   const pathname = usePathname();
+  const { startTour } = useProductTour(autoStartTour);
 
   return (
     <div className="flex flex-col w-64 bg-card border-r">
@@ -45,6 +52,7 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              data-tour={item.tour}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                 isActive
                   ? "bg-primary text-primary-foreground"
@@ -58,7 +66,15 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t space-y-1">
+        <button
+          onClick={() => void startTour()}
+          data-tour="tour-restart"
+          className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        >
+          <HelpCircle className="w-5 h-5" />
+          Ver tour
+        </button>
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
           className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"

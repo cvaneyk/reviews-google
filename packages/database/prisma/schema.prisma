@@ -63,6 +63,8 @@ model User {
   role          UserRole  @default(MEMBER)
   emailVerified DateTime?
   image         String?
+  // null = aún no ha visto el tour de bienvenida
+  tourCompletedAt DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

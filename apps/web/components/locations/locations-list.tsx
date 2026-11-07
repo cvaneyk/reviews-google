@@ -77,6 +77,7 @@ export function LocationsList({ locations, hasGoogleAccount }: LocationsListProp
           </p>
           <a
             href="/dashboard/settings"
+            data-tour="locations-sync"
             className="inline-flex px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
           >
             Ir a Configuración
@@ -98,6 +99,7 @@ export function LocationsList({ locations, hasGoogleAccount }: LocationsListProp
           <button
             onClick={handleSync}
             disabled={syncing}
+            data-tour="locations-sync"
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
@@ -110,7 +112,7 @@ export function LocationsList({ locations, hasGoogleAccount }: LocationsListProp
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2">
+      <div data-tour="locations-sync" className="flex justify-end gap-2">
         <button
           onClick={handleSync}
           disabled={syncing || syncingReviews}

@@ -19,7 +19,7 @@ export function StatsCards({
 }: StatsCardsProps) {
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div data-tour="stats-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card decoration="top" decorationColor="blue">
           <Text>Total Reseñas</Text>
           <Metric>{totalReviews}</Metric>
@@ -41,7 +41,7 @@ export function StatsCards({
         </Card>
       </div>
 
-      <Card>
+      <Card data-tour="stats-distribution">
         <Text className="font-medium">Distribución de Ratings</Text>
         <div className="mt-4 space-y-3">
           {[5, 4, 3, 2, 1].map((rating) => {

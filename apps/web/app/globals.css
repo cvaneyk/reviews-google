@@ -62,3 +62,10 @@
 .recharts-tooltip-wrapper {
   background-color: hsl(var(--popover));
 }
+
+/* El reset de Tailwind quita las viñetas de las listas del tour */
+.driver-popover-description ul {
+  list-style: disc;
+  margin-top: 0.25rem;
+  padding-left: 1.25rem;
+}
